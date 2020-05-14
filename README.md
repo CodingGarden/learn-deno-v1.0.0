@@ -16,8 +16,7 @@
         * Latest deno_mongo does not support v1!!!
       * [ ] Object Schema Validation
       * [ ] File watcher  
-        * Couldnt get it working...
-          * deno install --unstable --allow-read --allow-run -f https://deno.land/x/denon/denon.ts
+        * deno install -Af --unstable https://deno.land/x/denon/denon.ts
   * [ ] POST /dinosaurs
     * Create a dinosaur
   * [ ] GET /dinosaurs
