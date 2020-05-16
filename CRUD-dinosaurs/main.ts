@@ -1,10 +1,18 @@
-import { v4 } from 'https://deno.land/std/uuid/mod.ts';
-import { config } from 'https://deno.land/x/dotenv/mod.ts';
-import { Application, Router } from 'https://deno.land/x/oak/mod.ts';
-import * as yup from 'https://cdn.pika.dev/yup@^0.28.1';
+import * as yup from "https://cdn.pika.dev/yup@^0.28.1";
+import { config } from "https://deno.land/x/dotenv/mod.ts";
+import { init, MongoClient } from "https://deno.land/x/mongo@v0.6.0/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak/mod.ts";
+
+await init();
 
 const env = config();
 
+const client = new MongoClient();
+
+client.connectWithUri(env.MONGO_URI);
+
+const db = client.database("test");
+const dinosaurDB = db.collection("dinosaur");
 interface RequestError extends Error {
   status: number;
 }
@@ -17,29 +25,32 @@ interface Dinosaur {
 
 const dinosaurSchema = yup.object().shape({
   name: yup.string().trim().min(2).required(),
-  image: yup.string().trim().url().required()
+  image: yup.string().trim().url().required(),
 });
 
-const DB = new Map<string, Dinosaur>();
-
 const router = new Router();
-router.get('/', (ctx) => {
+router.get("/", (ctx) => {
   ctx.response.body = {
-    message: 'Hello World! 🦕'
+    message: "Hello World! 🦕",
   };
 });
 
-router.get('/dinosaurs', (ctx) => {
-  ctx.response.body = [...DB.values()];
+router.get("/dinosaurs", async (ctx) => {
+  try {
+    const dinosaurs = await dinosaurDB.find({});
+    ctx.response.body = dinosaurs;
+  } catch (error) {
+    ctx.response.body = error;
+    ctx.response.status = 500;
+  }
 });
 
-router.post('/dinosaurs', async (ctx) => {
+router.post("/dinosaurs", async (ctx) => {
   try {
     const body = await ctx.request.body();
-    if (body.type !== 'json') throw new Error('Invalid Body');
+    if (body.type !== "json") throw new Error("Invalid Body");
     const dinosaur = (await dinosaurSchema.validate(body.value) as Dinosaur);
-    dinosaur.id = v4.generate();
-    DB.set(dinosaur.id, dinosaur);
+    await dinosaurDB.insertOne(dinosaur);
     ctx.response.body = dinosaur;
   } catch (error) {
     error.status = 422;
@@ -47,16 +58,15 @@ router.post('/dinosaurs', async (ctx) => {
   }
 });
 
-router.delete('/dinosaurs/:id', (ctx) => {
+router.delete("/dinosaurs/:id", async (ctx) => {
   const { id } = ctx.params;
-  if (id && DB.has(id)) {
+  try {
     ctx.response.status = 204;
-    ctx.response.body = '';
-    DB.delete(id);
-  } else {
-    const error = new Error('Not Found! 🦕') as RequestError;
-    error.status = 404;
-    throw error;
+    ctx.response.body = "";
+    await dinosaurDB.deleteOne({ _id: { "$oid": id } });
+  } catch (error) {
+    ctx.response.status = 404;
+    ctx.response.body = "Sever Error";
   }
 });
 
@@ -77,5 +87,5 @@ app.use(async (ctx, next) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-console.log('Listening on http://localhost:4242');
+console.log("Listening on http://localhost:4242");
 await app.listen({ port: 4242 });
