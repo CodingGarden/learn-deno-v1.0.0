@@ -13,11 +13,12 @@
       * [ ] Environment Variables
         * https://deno.land/x/dotenv/
       * [ ] MongoDB Driver
-        * Latest deno_mongo does not support v1!!!
+        * https://deno.land/x/mongo
       * [ ] Object Schema Validation
       * [ ] File watcher  
-        * Couldnt get it working...
-          * deno install --unstable --allow-read --allow-run -f https://deno.land/x/denon/denon.ts
+        * deno install --allow-read --allow-run --allow-write -f --unstable https://deno.land/x/denon/denon.ts
+        * `denon init` to create denon.json config file. Create a [script](https://github.com/Oloro/deno-rest/blob/master/denon.json)
+        * `denon` to list all scripts, `denon start` to run our server with fs watcher enabled
   * [ ] POST /dinosaurs
     * Create a dinosaur
   * [ ] GET /dinosaurs
